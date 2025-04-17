@@ -1,0 +1,24 @@
+[project]
+name = "zmprinter"
+version = "0.1.1"
+description = "Python SDK for ZMPrinter"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Anderson", email = "andersonby@163.com" }]
+dependencies = ["pythonnet>=3.0.5", "Pillow>=11.2.1"]
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[tool.pdm]
+distribution = true
+
+[tool.pdm.build]
+excludes = ["tests", "examples"]
+
+[tool.pdm.scripts]
+test.cmd = "python"
+test.env = { PYTHONPATH = ".", ZMPRINTER_LOG_LEVEL = "DEBUG" }
