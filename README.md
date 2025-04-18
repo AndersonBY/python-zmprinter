@@ -57,14 +57,7 @@ from zmprinter import (
 )
 
 try:
-    # 1. 初始化 SDK
-    # SDK 会尝试自动查找 libs 目录下的 DLL
-    # 如果 DLL 在其他位置，可以指定路径: sdk = LabelPrinterSDK(dll_path="C:\\path\\to\\LabelPrinter.dll")
-    logger.info("初始化 ZMPrinter SDK...")
-    sdk = LabelPrinterSDK()
-    logger.info("SDK 初始化成功.")
-
-    # 2. 配置打印机 (USB 接口, 300 DPI)
+    # 1. 配置打印机 (USB 接口, 300 DPI)
     printer_cfg = PrinterConfig(
         interface=PrinterStyle.USB,
         dpi=300,
@@ -78,9 +71,16 @@ try:
     )
     logger.info(f"打印机配置: 接口={printer_cfg.interface.name}, DPI={printer_cfg.dpi}")
 
-    # 3. 配置标签 (60mm x 40mm, 间隙 2mm)
+    # 2. 配置标签 (60mm x 40mm, 间隙 2mm)
     label_cfg = LabelConfig(width=60, height=40, gap=2)
     logger.info(f"标签配置: 宽度={label_cfg.width}mm, 高度={label_cfg.height}mm")
+
+    # 3. 初始化 SDK
+    # SDK 会尝试自动查找 libs 目录下的 DLL
+    # 如果 DLL 在其他位置，可以指定路径: sdk = LabelPrinterSDK(dll_path="C:\\path\\to\\LabelPrinter.dll")
+    logger.info("初始化 ZMPrinter SDK...")
+    sdk = LabelPrinterSDK(printer_config=printer_cfg, label_config=label_cfg)
+    logger.info("SDK 初始化成功.")
 
     # 4. 创建标签元素列表
     elements = [
@@ -113,7 +113,7 @@ try:
 
     # 5. 预览标签
     logger.info("生成标签预览...")
-    preview_image = sdk.preview_label(printer_cfg, label_cfg, elements)
+    preview_image = sdk.preview_label(elements)
     if preview_image:
         # preview_image.show() # 直接显示预览图 (需要图形界面环境)
         preview_image.save("label_preview.png")
@@ -124,19 +124,19 @@ try:
     # 6. 打印标签
     logger.info("准备打印标签...")
     # 检查打印机状态
-    status_code, status_msg = sdk.get_printer_status(printer_cfg)
+    status_code, status_msg = sdk.get_printer_status()
     logger.info(f"打印前状态: 代码={status_code}, 信息='{status_msg}'")
 
     # 0 表示打印机正常待机
     if status_code == 0:
-        print_result = sdk.print_label(printer_cfg, label_cfg, elements, copies=1)
+        print_result = sdk.print_label(elements, copies=1)
         logger.info(f"打印指令发送完成. 结果: {print_result}")
         if print_result.startswith("Error:"):
             logger.error(f"打印失败: {print_result}")
     # 96 表示剥纸器正在等待取走标签 (也认为是可打印状态)
     elif status_code == 96:
         logger.warning("打印机处于剥离模式，等待标签被取走。尝试打印...")
-        print_result = sdk.print_label(printer_cfg, label_cfg, elements, copies=1)
+        print_result = sdk.print_label(elements, copies=1)
         logger.info(f"打印指令发送完成. 结果: {print_result}")
     else:
         logger.error(f"打印机状态异常 ({status_msg})，取消打印。")
@@ -164,6 +164,7 @@ from zmprinter import LabelPrinterSDK, ZMPrinterImportError
 try:
     # 自动查找 DLL (推荐)
     sdk = LabelPrinterSDK()
+    # 初始化时可以直接传入 printer_config 和 label_config，后面打印时不需要每次都传入
 
     # 或者手动指定 DLL 完整路径
     # dll_path = "C:/path/to/your/libs/x64/LabelPrinter.dll"
@@ -454,18 +455,20 @@ rfid_hf_ndef = RFIDElement(
 # elements 是包含 LabelElement 子类对象的列表
 # printer_cfg, label_cfg 是配置对象
 
+# 如果 sdk 实例化时已经传入了 printer_cfg, label_cfg，即
+sdk = LabelPrinterSDK(printer_config=printer_cfg, label_config=label_cfg)
+# 则后续打印时可以不需要手动传入 printer_cfg 和 label_cfg
+
 # 打印 1 份
-result = sdk.print_label(printer_cfg, label_cfg, elements, copies=1)
+result = sdk.print_label(elements, copies=1)
 print(f"打印结果: {result}")
 
-# 打印 3 份，打印前不检查状态，等待打印完成
+# 打印 3 份，单独传入不同的 printer_cfg 和 label_cfg
 result_multi = sdk.print_label(
-    printer_cfg,
-    label_cfg,
     elements,
     copies=3,
-    check_status=False, # 强制发送打印指令，不检查状态
-    wait_finish=True    # 等待打印机实际完成打印 (对 USB/RFID 重要)
+    printer_config=printer_cfg_2,
+    label_config=label_cfg_2,
 )
 print(f"多份打印结果: {result_multi}")
 
@@ -481,7 +484,7 @@ if result.startswith("Error:"):
 生成标签的预览图，返回一个 Pillow `Image` 对象。
 
 ```python
-preview = sdk.preview_label(printer_cfg, label_cfg, elements)
+preview = sdk.preview_label(elements)  # 同理，可单独传入不同的 printer_config 和 label_config
 if preview:
     preview.show() # 显示图片
     preview.save("mylabel.png") # 保存为文件
@@ -521,7 +524,7 @@ try:
             print("  未找到名为 'variable-sku' 的元素或变量。")
 
         # 预览修改后的 LSF 标签
-        lsf_preview = sdk.preview_label(lsf_printer, lsf_label, lsf_elements)
+        lsf_preview = sdk.preview_label(lsf_elements)
         if lsf_preview:
             lsf_preview.save("lsf_preview_updated.png")
             print("  修改后的 LSF 预览图已保存。")
@@ -552,7 +555,7 @@ try:
     print("尝试读取 UHF TID...")
     # area: 0=TID, 1=EPC, 2=TID+EPC
     # stop_position: 0=原始位置, 1=撕纸位, 2=打印位, 3=写入位
-    tid_data = sdk.read_uhf_tag(printer_cfg, label_cfg, area=0, power=20, stop_position=2, timeout=1500)
+    tid_data = sdk.read_uhf_tag(area=0, power=20, stop_position=2, timeout=1500)
     if tid_data:
         print(f"成功读取 TID: {tid_data}")
     else:
@@ -562,7 +565,7 @@ try:
 
     # 读取 UHF 标签的 EPC
     print("\n尝试读取 UHF EPC...")
-    epc_data = sdk.read_uhf_tag(printer_cfg, label_cfg, area=1, stop_position=2)
+    epc_data = sdk.read_uhf_tag(area=1, stop_position=2)
     if epc_data:
         print(f"成功读取 EPC: {epc_data}")
     else:
@@ -572,7 +575,7 @@ try:
     # print("\n尝试读取 HF UID...")
     # protocol: 1=15693, 2=14443A, 3=NFC
     # area: 0=UID, 1=Data Area
-    # hf_uid = sdk.read_hf_tag(printer_cfg, label_cfg, protocol=1, area=0, stop_position=1)
+    # hf_uid = sdk.read_hf_tag(protocol=1, area=0, stop_position=1)
     # if hf_uid:
     #     print(f"成功读取 HF UID: {hf_uid}")
     # else:
@@ -594,7 +597,7 @@ except Exception as e:
 返回一个包含状态码和状态描述的元组。
 
 ```python
-status_code, status_message = sdk.get_printer_status(printer_cfg)
+status_code, status_message = sdk.get_printer_status()
 
 print(f"打印机状态码: {status_code}")
 print(f"状态信息: {status_message}")
@@ -637,7 +640,7 @@ else:
 ```python
 # 示例：发送 TSPL 指令设置打印速度 (需要打印机支持 TSPL)
 tspl_command = 'SPEED 4\n'
-result = sdk.send_printer_command(printer_cfg, tspl_command)
+result = sdk.send_printer_command(tspl_command)
 print(f"发送 TSPL 指令结果: {result}")
 
 # 示例：发送 ZPL 指令打印简单文本 (需要打印机支持 ZPL)
@@ -646,7 +649,7 @@ zpl_command = """
 ^FO50,50^ADN,36,20^FDHello ZPL^FS
 ^XZ
 """
-result_zpl = sdk.send_printer_command(printer_cfg, zpl_command)
+result_zpl = sdk.send_printer_command(zpl_command)
 print(f"发送 ZPL 指令结果: {result_zpl}")
 ```
 

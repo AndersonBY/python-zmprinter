@@ -190,7 +190,7 @@ json_string = """
 """
 
 
-def print_from_json(sdk_instance: LabelPrinterSDK, json_payload: str):
+def print_from_json(json_payload: str):
     """
     Parses the JSON payload and uses the SDK to print the label.
     """
@@ -247,12 +247,17 @@ def print_from_json(sdk_instance: LabelPrinterSDK, json_payload: str):
                 elements.append(py_element)
                 print(f"    Added element: {py_element.__class__.__name__} - {py_element.object_name}")
 
+        sdk_instance = LabelPrinterSDK(
+            printer_config=printer_cfg,
+            label_config=label_cfg,
+        )
+
         # --- 4. Perform Print Operation ---
         openrate = data.get("Operate")
         if openrate == "print":
             if not elements:
                 print("Error: No valid label elements were created. Cannot print.")
-                return
+                return sdk_instance
 
             print("\nChecking printer status before printing...")
             status_code, status_msg = sdk_instance.get_printer_status(printer_cfg)
@@ -260,16 +265,17 @@ def print_from_json(sdk_instance: LabelPrinterSDK, json_payload: str):
 
             if status_code == 0 or status_code == 96:  # 0: Ready, 96: Waiting for label removal (might be ok)
                 print(f"\nAttempting to print {copies} copies...")
-                print_result = sdk_instance.print_label(printer_cfg, label_cfg, elements, copies=copies)
+                print_result = sdk_instance.print_label(elements, copies=copies)
                 print(f"\nPrint command finished. Result: {print_result}")
             else:
                 print("\nPrinter not ready. Print operation cancelled.")
         elif openrate == "preview":
             print("\nPreviewing label...")
-            preview_result = sdk_instance.preview_label(printer_cfg, label_cfg, elements)
+            preview_result = sdk_instance.preview_label(elements)
             print(f"\nPreview command finished. Result: {preview_result}")
             if preview_result:
                 preview_result.show()
+            return sdk_instance
         else:
             print(f"\nOperation specified is '{data.get('Operate', 'None')}', not 'print'. No print action taken.")
 
@@ -286,13 +292,8 @@ def print_from_json(sdk_instance: LabelPrinterSDK, json_payload: str):
 # --- Main Execution ---
 if __name__ == "__main__":
     try:
-        # Initialize the SDK
-        # Ensure the DLL is accessible (e.g., in the same directory, in PATH, or provide full path)
-        # sdk = LabelPrinterSDK(dll_path="C:\\path\\to\\LabelPrinter.dll")
-        sdk = LabelPrinterSDK()
-
         # Call the function to process the JSON and print
-        print_from_json(sdk, json_string)
+        print_from_json(json_string)
 
     except ImportError as e:
         print(f"Fatal Error: Could not initialize LabelPrinter SDK. {e}")

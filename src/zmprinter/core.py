@@ -39,7 +39,12 @@ except ImportError as e:
 class LabelPrinterSDK:
     """封装 LabelPrinter.dll 功能的 Python SDK"""
 
-    def __init__(self, dll_path: Optional[str] = None):
+    def __init__(
+        self,
+        dll_path: Optional[str] = None,
+        printer_config: Optional[PrinterConfig] = None,
+        label_config: Optional[LabelConfig] = None,
+    ):
         """
         初始化 SDK 并加载 DLL。
         :param dll_path: LabelPrinter.dll 的完整路径。如果为 None，会根据平台自动选择合适的DLL。
@@ -103,6 +108,10 @@ class LabelPrinterSDK:
         except Exception as e:
             logger.error(f"无法实例化 LabelPrinter 类: {e}")
             raise ZMPrinterSetupError(f"SDK 初始化失败: {e}", original_exception=e)
+
+        self.printer_status = None
+        self.printer_config = printer_config
+        self.label_config = label_config
 
     def _create_dotnet_printer(self, config: PrinterConfig) -> object:
         """将 Python PrinterConfig 转换为 .NET ZMPrinter 对象"""
@@ -319,7 +328,10 @@ class LabelPrinterSDK:
                 dotnet_bitmap.Dispose()
 
     def preview_label(
-        self, printer_config: PrinterConfig, label_config: LabelConfig, elements: List[LabelElement]
+        self,
+        elements: List[LabelElement],
+        printer_config: Optional[PrinterConfig] = None,
+        label_config: Optional[LabelConfig] = None,
     ) -> Optional["Image.Image"]:
         """
         生成标签预览图。
@@ -328,6 +340,14 @@ class LabelPrinterSDK:
         :param elements: 标签元素列表
         :return: PIL Image 对象，如果生成失败则返回 None
         """
+        if printer_config is None:
+            printer_config = self.printer_config
+            if printer_config is None:
+                raise ZMPrinterCommandError("打印机配置对象为空")
+        if label_config is None:
+            label_config = self.label_config
+            if label_config is None:
+                raise ZMPrinterCommandError("标签配置对象为空")
         try:
             dotnet_printer = self._create_dotnet_printer(printer_config)
             dotnet_label = self._create_dotnet_label(label_config)
@@ -345,12 +365,10 @@ class LabelPrinterSDK:
 
     def print_label(
         self,
-        printer_config: PrinterConfig,
-        label_config: LabelConfig,
         elements: List[LabelElement],
         copies: int = 1,
-        check_status: bool = True,
-        wait_finish: bool = True,
+        printer_config: Optional[PrinterConfig] = None,
+        label_config: Optional[LabelConfig] = None,
     ) -> str:
         """
         打印标签。
@@ -362,6 +380,15 @@ class LabelPrinterSDK:
         :param wait_finish: 是否等待打印任务完成 (传递给 DLL，尤其对 USB/RFID 重要)。
         :return: 打印结果消息。如果多次打印中有错误，返回第一个错误；如果全部成功，返回"OK"。
         """
+        if printer_config is None:
+            printer_config = self.printer_config
+            if printer_config is None:
+                raise ZMPrinterCommandError("打印机配置对象为空")
+        if label_config is None:
+            label_config = self.label_config
+            if label_config is None:
+                raise ZMPrinterCommandError("标签配置对象为空")
+
         if copies < 1:
             return "打印份数必须至少为 1"
 
@@ -375,10 +402,9 @@ class LabelPrinterSDK:
                 dotnet_elements = self._create_dotnet_object_list(elements)
 
                 # 调用 DLL 的 PrintLabel 方法
-                # C# 方法签名: string PrintLabel(ZMPrinter printer, ZMLabel label, List<LabelObject> elements, bool checkStatus, bool waitFinish)
-                return_msg = self.print_utility.PrintLabel(
-                    dotnet_printer, dotnet_label, dotnet_elements, check_status, wait_finish
-                )
+                # C# 方法签名: string PrintLabel(ZMPrinter printer, ZMLabel label, List<LabelObject> elements, bool firstlabel, bool lastlabel)
+                # 分析源码后发现 firstlabel 和 lastlabel 并未实际使用
+                return_msg = self.print_utility.PrintLabel(dotnet_printer, dotnet_label, dotnet_elements)
 
                 if isinstance(return_msg, str) and return_msg.startswith("Error:"):
                     logger.error(f"打印第 {i + 1} 张时出错: {return_msg}")
@@ -752,12 +778,12 @@ class LabelPrinterSDK:
 
     def read_uhf_tag(
         self,
-        printer_config: PrinterConfig,
-        label_config: LabelConfig,
         area: int = 0,
         power: int = 0,
         stop_position: int = 2,
         timeout: int = 2000,
+        printer_config: Optional[PrinterConfig] = None,
+        label_config: Optional[LabelConfig] = None,
     ) -> str:
         """
         读取超高频 RFID 标签数据 (TID, EPC, 或两者)。
@@ -769,6 +795,15 @@ class LabelPrinterSDK:
         :param timeout: 超时时间 (毫秒)
         :return: 读取到的数据 (成功)
         """
+        if printer_config is None:
+            printer_config = self.printer_config
+            if printer_config is None:
+                raise ZMPrinterCommandError("打印机配置对象为空")
+        if label_config is None:
+            label_config = self.label_config
+            if label_config is None:
+                raise ZMPrinterCommandError("标签配置对象为空")
+
         if printer_config.interface not in [
             PrinterStyle.RFID_USB,
             PrinterStyle.RFID_NET,
@@ -799,13 +834,13 @@ class LabelPrinterSDK:
 
     def read_hf_tag(
         self,
-        printer_config: PrinterConfig,
-        label_config: LabelConfig,
         protocol: int = 1,
         area: int = 0,
         power: int = 0,
         stop_position: int = 1,
         timeout: int = 2000,
+        printer_config: Optional[PrinterConfig] = None,
+        label_config: Optional[LabelConfig] = None,
     ) -> str:
         """
         读取高频 RFID 标签数据 (UID 或数据区)。
@@ -818,6 +853,15 @@ class LabelPrinterSDK:
         :param timeout: 超时时间 (毫秒)
         :return: 读取到的数据 (成功) 或 "Error: xxx" (失败) 或空字符串 (未读到)
         """
+        if printer_config is None:
+            printer_config = self.printer_config
+            if printer_config is None:
+                raise ZMPrinterCommandError("打印机配置对象为空")
+        if label_config is None:
+            label_config = self.label_config
+            if label_config is None:
+                raise ZMPrinterCommandError("标签配置对象为空")
+
         if printer_config.interface not in [PrinterStyle.RFID_USB, PrinterStyle.RFID_NET]:  # 确认支持的接口类型
             raise ZMPrinterConfigError("打印机接口必须兼容RFID才能读取HF标签。")
         try:
@@ -839,7 +883,10 @@ class LabelPrinterSDK:
             raise ZMPrinterRFIDError(f"读取 HF 标签时发生 Python 异常: {e}", original_exception=e)
 
     def print_blank_page(
-        self, printer_config: PrinterConfig, label_config: LabelConfig, print_error_mark: bool = True
+        self,
+        print_error_mark: bool = True,
+        printer_config: Optional[PrinterConfig] = None,
+        label_config: Optional[LabelConfig] = None,
     ):
         """
         打印一个空白页，通常在 RFID 读取失败后用于排出标签。
@@ -847,6 +894,14 @@ class LabelPrinterSDK:
         :param label_config: 标签配置
         :param print_error_mark: 是否在空白页上打印错误标记 'X'
         """
+        if printer_config is None:
+            printer_config = self.printer_config
+            if printer_config is None:
+                raise ZMPrinterCommandError("打印机配置对象为空")
+        if label_config is None:
+            label_config = self.label_config
+            if label_config is None:
+                raise ZMPrinterCommandError("标签配置对象为空")
         try:
             dotnet_printer = self._create_dotnet_printer(printer_config)
             dotnet_label = self._create_dotnet_label(label_config)
@@ -856,7 +911,7 @@ class LabelPrinterSDK:
             logger.exception(f"Error: 打印空白页时发生 Python 异常: {e}")
             raise ZMPrinterCommandError(f"打印空白页失败: {e}", original_exception=e)
 
-    def get_printer_status(self, printer_config: PrinterConfig) -> Tuple[int, str]:
+    def get_printer_status(self, printer_config: Optional[PrinterConfig] = None) -> Tuple[int, str]:
         """
         获取打印机状态码和描述信息。
         :param printer_config: 打印机配置
@@ -864,6 +919,10 @@ class LabelPrinterSDK:
                  status_code: 整数状态码 (见文档)
                  status_message: 状态码对应的描述或错误信息
         """
+        if printer_config is None:
+            printer_config = self.printer_config
+            if printer_config is None:
+                raise ZMPrinterCommandError("打印机配置对象为空")
         try:
             dotnet_printer = self._create_dotnet_printer(printer_config)
             # C# 签名: int getPrinterStatusCode(ZMPrinter printer)
@@ -928,13 +987,21 @@ class LabelPrinterSDK:
             logger.exception(f"获取 USB SN 时发生异常: {e}")
             return []
 
-    def send_printer_command(self, printer_config: PrinterConfig, command_string: str) -> str:
+    def send_printer_command(
+        self,
+        command_string: str,
+        printer_config: Optional[PrinterConfig] = None,
+    ) -> str:
         """
         直接向打印机发送原始指令字符串。
         :param printer_config: 打印机配置
         :param command_string: 要发送的打印机指令 (如 ZPL, EPL, TSPL, ZMPCLE)
         :return: DLL 返回的操作状态或错误信息。
         """
+        if printer_config is None:
+            printer_config = self.printer_config
+            if printer_config is None:
+                raise ZMPrinterCommandError("打印机配置对象为空")
         try:
             dotnet_printer = self._create_dotnet_printer(printer_config)
             # C# 签名: string SetPrinterParams(ZMPrinter printer, string paramstring)
