@@ -367,18 +367,18 @@ class LabelPrinterSDK:
         self,
         elements: List[LabelElement],
         copies: int = 1,
+        stop_at_error: bool = True,
         printer_config: Optional[PrinterConfig] = None,
         label_config: Optional[LabelConfig] = None,
-    ) -> str:
+    ) -> Tuple[str, int]:
         """
         打印标签。
-        :param printer_config: 打印机配置对象
-        :param label_config: 标签配置对象
         :param elements: 标签元素列表
         :param copies: 打印份数。注意：DLL 的 PrintLabel 本身打印一张，循环在 Python 层完成。
-        :param check_status: 是否在打印前检查打印机状态 (传递给 DLL)。
-        :param wait_finish: 是否等待打印任务完成 (传递给 DLL，尤其对 USB/RFID 重要)。
-        :return: 打印结果消息。如果多次打印中有错误，返回第一个错误；如果全部成功，返回"OK"。
+        :param stop_at_error: 是否在遇到错误时停止打印。
+        :param printer_config: 打印机配置对象
+        :param label_config: 标签配置对象
+        :return: 一个元组 (final_result, finished_count)。
         """
         if printer_config is None:
             printer_config = self.printer_config
@@ -390,9 +390,10 @@ class LabelPrinterSDK:
                 raise ZMPrinterCommandError("标签配置对象为空")
 
         if copies < 1:
-            return "打印份数必须至少为 1"
+            return "Error: 打印份数必须至少为 1", 0
 
         final_result = "OK"  # 假设成功
+        finished_count = 0
 
         for i in range(copies):
             logger.debug(f"准备打印第 {i + 1}/{copies} 张...")
@@ -404,16 +405,16 @@ class LabelPrinterSDK:
                 # 调用 DLL 的 PrintLabel 方法
                 # C# 方法签名: string PrintLabel(ZMPrinter printer, ZMLabel label, List<LabelObject> elements, bool firstlabel, bool lastlabel)
                 # 分析源码后发现 firstlabel 和 lastlabel 并未实际使用
-                return_msg = self.print_utility.PrintLabel(dotnet_printer, dotnet_label, dotnet_elements)
+                return_msg = self.print_utility.PrintLabel(dotnet_printer, dotnet_label, dotnet_elements, True, True)
 
                 if isinstance(return_msg, str) and return_msg.startswith("Error:"):
                     logger.error(f"打印第 {i + 1} 张时出错: {return_msg}")
                     final_result = return_msg  # 记录第一个错误
-                    break  # 如果出错则停止后续打印
+                    if stop_at_error:
+                        break  # 如果出错则停止后续打印
                 else:
-                    logger.info(f"第 {i + 1}/{copies} 张标签指令已发送")
-                    # 如果 wait_finish=True, DLL 应该已经等待了。
-                    # 如果 wait_finish=False, 可能需要在这里添加延时或状态检查逻辑（如果DLL不处理）。
+                    logger.debug(f"第 {i + 1}/{copies} 张标签指令已发送")
+                    finished_count += 1
 
             except Exception as e:
                 error_msg = f"打印第 {i + 1} 张时发生 Python 异常: {e}"
@@ -421,7 +422,7 @@ class LabelPrinterSDK:
                 final_result = f"Error: {error_msg}"
                 break  # 停止后续打印
 
-        return final_result
+        return final_result, finished_count
 
     def read_lsf(
         self, lsf_file_path: str | Path

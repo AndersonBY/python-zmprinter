@@ -28,6 +28,11 @@ def get_logger(
     # 创建新的logger
     logger = logging.getLogger(name)
 
+    # 防止日志重复：如果此logger有父级并且传播enabled，则不添加处理器
+    if name != "zmprinter" and "." in name and logger.propagate:
+        _loggers[name] = logger
+        return logger
+
     # 设置日志级别
     if log_level is None:
         log_level = os.getenv("ZMPRINTER_LOG_LEVEL", DEFAULT_LOG_LEVEL)
@@ -70,6 +75,13 @@ def setup_file_logging(
     :return: 配置好的Logger实例
     """
     logger = get_logger(name, log_level, log_format)
+
+    # 检查是否已有相同路径的文件处理器
+    for handler in logger.handlers:
+        if isinstance(handler, logging.FileHandler) and getattr(handler, "baseFilename", None) == os.path.abspath(
+            filename
+        ):
+            return logger
 
     # 添加文件处理器
     file_handler = logging.FileHandler(filename, mode=mode)

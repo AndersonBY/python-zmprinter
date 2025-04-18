@@ -17,11 +17,7 @@ from zmprinter import (
 )
 
 try:
-    # 1. 初始化 SDK (确保 LabelPrinter.dll 在路径中或提供完整路径)
-    # sdk = LabelPrinterSDK(dll_path="C:\\path\\to\\your\\libs\\AnyCPU\\LabelPrinter.dll")
-    sdk = LabelPrinterSDK()  # 尝试自动查找
-
-    # 2. 定义打印机配置 (USB 示例)
+    # 1. 定义打印机配置 (USB 示例)
     printer_cfg = PrinterConfig(interface=PrinterStyle.USB, dpi=300, speed=4, darkness=10, has_gap=True)
 
     # 或者 网络打印机示例
@@ -36,8 +32,12 @@ try:
     # 或者 RFID USB 打印机示例
     printer_cfg_rfid = PrinterConfig(interface=PrinterStyle.RFID_USB, dpi=300, speed=4, darkness=12, has_gap=True)
 
-    # 3. 定义标签配置
+    # 2. 定义标签配置
     label_cfg = LabelConfig(width=100, height=30, gap=2)
+
+    # 3. 初始化 SDK (确保 LabelPrinter.dll 在路径中或提供完整路径)
+    # sdk = LabelPrinterSDK(dll_path="C:\\path\\to\\your\\libs\\AnyCPU\\LabelPrinter.dll")
+    sdk = LabelPrinterSDK(printer_config=printer_cfg, label_config=label_cfg)  # 尝试自动查找
 
     # 4. 定义标签元素
     elements = [
@@ -100,7 +100,7 @@ try:
 
     # 5. 预览标签
     print("生成预览...")
-    preview_image = sdk.preview_label(printer_cfg, label_cfg, elements)
+    preview_image = sdk.preview_label(elements)
     if preview_image:
         preview_image.show()  # 使用 Pillow 显示图片
         # preview_image.save("preview.png") # 保存图片
@@ -119,7 +119,7 @@ try:
         sdk.update_element_data(elements, "barcode-01", "(01)06975503990001(21)2307019999")
         sdk.update_element_data(elements, "rfiduhf-01", "FEDCBA9876543210FEDCBA98")  # 更新 RFID 数据
 
-        print_result = sdk.print_label(printer_cfg_rfid, label_cfg, elements, copies=1)
+        print_result = sdk.print_label(elements, copies=1)
         print(f"打印结果: {print_result}")
     else:
         print("打印机状态异常，取消打印。")
@@ -146,7 +146,7 @@ try:
                 print("  未找到名为 'text-2' 的 LSF 元素或变量。")
 
             # 预览 LSF 标签
-            lsf_preview = sdk.preview_label(lsf_printer, lsf_label, lsf_elements)
+            lsf_preview = sdk.preview_label(lsf_elements)
             if lsf_preview:
                 lsf_preview.show()
                 print("  LSF 预览图已显示。")
@@ -163,7 +163,7 @@ try:
     # 8. 读取 RFID 标签示例 (TID)
     print("\n尝试读取 UHF TID...")
     # 假设使用 printer_cfg_rfid
-    tid_data = sdk.read_uhf_tag(printer_cfg_rfid, label_cfg, area=0, stop_position=2)  # 读取 TID，停在打印位置
+    tid_data = sdk.read_uhf_tag(area=0, stop_position=2)  # 读取 TID，停在打印位置
     if tid_data.startswith("Error:"):
         print(f"读取 TID 失败: {tid_data}")
     elif not tid_data:
