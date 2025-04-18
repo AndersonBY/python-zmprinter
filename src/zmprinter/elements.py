@@ -2,7 +2,7 @@ import base64
 import binascii
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any, Union, Literal, cast
 
 from .utils import get_logger
 from .enums import BarcodeType, RFIDEncoderType, RFIDDataBlock, RFIDDataType
@@ -66,23 +66,23 @@ class LabelElement:
                 y=y_pos,
                 font_name=data.get("textfont", "黑体"),
                 font_size=font_size,
-                font_style=int(data.get("fontstyle", 0)),
-                text_align=int(data.get("texttextalign", 0)),  # Map C# texttextalign
-                text_valign=int(data.get("texttextvalign", 0)),  # Map C# texttextvalign
+                font_style=cast(Literal[0, 1, 2, 3], int(data.get("fontstyle", 0))),
+                text_align=cast(Literal[0, 1, 2], int(data.get("texttextalign", 0))),  # Map C# texttextalign
+                text_valign=cast(Literal[0, 1, 2], int(data.get("texttextvalign", 0))),  # Map C# texttextvalign
                 is_multiline=is_multiline,
                 width=width,
-                width_handling=int(data.get("textwidthbeyound", 0)) if is_multiline else 0,
+                width_handling=cast(Literal[0, 1, 2], int(data.get("textwidthbeyound", 0))) if is_multiline else 0,
                 black_background=bool(data.get("blackbackground", False)),
                 char_gap=float(data.get("chargap", 0)),
                 char_h_zoom=float(data.get("charHZoom", 1)),
-                line_gap_index=int(data.get("linegapindex", 0)),
+                line_gap_index=cast(Literal[0, 1, 2, 3], int(data.get("linegapindex", 0))),
                 line_gap=float(data.get("linegap", 0)),
                 # Circular text properties (if texttype == 2)
                 circular_radius=float(data.get("circularradius", 2.0)),
                 text_radian=int(data.get("textradian", 360)),
                 text_start_angle=int(data.get("textstartangle", 0)),
-                rewinding_direction=int(data.get("rewindingdirection", 0)),
-                literal_direction=int(data.get("literaldirection", 0)),
+                rewinding_direction=cast(Literal[0, 1], int(data.get("rewindingdirection", 0))),
+                literal_direction=cast(Literal[0, 1], int(data.get("literaldirection", 0))),
             )
             # Explicitly set text_type if circular
             if text_type == 2:
@@ -109,21 +109,23 @@ class LabelElement:
                 y=y_pos,
                 scale=float(data.get("barcodescale", 3)),
                 height=height,
-                text_position=int(data.get("textposition", 0)),
-                direction=int(data.get("direction", 0)),
-                error_correction=int(data.get("errorcorrection", 0)),
-                char_encoding=int(data.get("charencoding", 0)),
+                text_position=cast(Literal[0, 1, 2], int(data.get("textposition", 0))),
+                direction=cast(Literal[0, 1, 2, 3], int(data.get("direction", 0))),
+                error_correction=cast(Literal[0, 1, 2, 3], int(data.get("errorcorrection", 0))),
+                char_encoding=cast(Literal[0, 1], int(data.get("charencoding", 0))),
                 qr_version=int(data.get("qrversion", 0)),
                 code39_width_ratio=int(data.get("code39widthratio", 3)),
                 code39_start_char=bool(data.get("code39startchar", True)),
-                barcode_align=int(data.get("barcodealign", 0)),
+                barcode_align=cast(Literal[0, 1, 2], int(data.get("barcodealign", 0))),
                 pdf417_rows=int(data.get("pdf417_rows", 0)),
                 pdf417_columns=int(data.get("pdf417_columns", 0)),
                 pdf417_rows_auto=int(data.get("pdf417_rows_auto", 3)),
                 pdf417_columns_auto=int(data.get("pdf417_columns_auto", 1)),
                 datamatrix_shape=int(data.get("datamatrixShape", 0)),  # Note C# capitalization
                 text_offset=float(data.get("textoffset", 0)),
-                text_align=int(data.get("textalign", 2)),  # Different from TextElement's text_align
+                text_align=cast(
+                    Literal[0, 1, 2, 3], int(data.get("textalign", 2))
+                ),  # Different from TextElement's text_align
                 text_font=data.get("textfont", "黑体"),
                 # Note: fontsize from the dict might be for the barcode text,
                 # but BarcodeElement doesn't explicitly store it currently.
@@ -158,16 +160,16 @@ class LabelElement:
                 rfid_encoder_type=encoder_type,
                 rfid_data_block=data_block,
                 rfid_data_type=data_type,
-                rfid_text_encoding=int(data.get("RFIDTextencoding", 0)),
+                rfid_text_encoding=cast(Literal[0, 1], int(data.get("RFIDTextencoding", 0))),
                 rfid_error_times=int(data.get("RFIDerrortimes", 2)),
                 data_length_double_words=bool(data.get("Datalengthdoublewords", False)),
-                data_alignment=int(data.get("DataAlignment", 0)),
+                data_alignment=cast(Literal[0, 1], int(data.get("DataAlignment", 0))),
                 # Access Control (assuming keys exist if needed)
-                rfid_epc_control=int(data.get("RFIDepccontrol", 0)),
-                rfid_user_control=int(data.get("RFIDusercontrol", 0)),
-                rfid_tid_control=int(data.get("RFIDtidcontrol", 0)),
-                rfid_access_pwd_control=int(data.get("RFIDaccesspwdcontrol", 0)),
-                rfid_kill_pwd_control=int(data.get("RFIDkillpwdcontrol", 0)),
+                rfid_epc_control=cast(Literal[0, 1, 2, 3, 4, 5, 6], int(data.get("RFIDepccontrol", 0))),
+                rfid_user_control=cast(Literal[0, 1, 2, 3, 4, 5, 6], int(data.get("RFIDusercontrol", 0))),
+                rfid_tid_control=cast(Literal[0, 1, 2, 3, 4, 5, 6], int(data.get("RFIDtidcontrol", 0))),
+                rfid_access_pwd_control=cast(Literal[0, 1, 2, 3, 4, 5, 6], int(data.get("RFIDaccesspwdcontrol", 0))),
+                rfid_kill_pwd_control=cast(Literal[0, 1, 2, 3, 4, 5, 6], int(data.get("RFIDkillpwdcontrol", 0))),
                 rfid_access_new_pwd=data.get("RFIDaccessnewpwd", "00000000"),
                 rfid_access_old_pwd=data.get("RFIDaccessoldpwd", "00000000"),
                 rfid_use_kill_pwd=bool(data.get("RFIDusekillpwd", False)),
@@ -177,14 +179,14 @@ class LabelElement:
                 hf_module_power=int(data.get("HFmodulepower", 0)),
                 encrypt_14443a=bool(data.get("Encrypt14443A", False)),
                 sector_14443a=int(data.get("Sector14443A", 1)),
-                keyab_14443a=int(data.get("KEYAB14443A", 0)),
+                keyab_14443a=cast(Literal[0, 1, 2], int(data.get("KEYAB14443A", 0))),
                 keya_new_pwd=data.get("KEYAnewpwd", ""),
                 keya_old_pwd=data.get("KEYAoldpwd", "FFFFFFFFFFFF"),
                 keyb_new_pwd=data.get("KEYBnewpwd", ""),
                 keyb_old_pwd=data.get("KEYBoldpwd", "FFFFFFFFFFFF"),
                 encrypt_14443a_control=bool(data.get("Encrypt14443AControl", False)),
                 encrypt_14443a_control_value=data.get("Encrypt14443AControlvalue", "FF078069"),
-                control_area_15693=int(data.get("Controlarea15693", 0)),
+                control_area_15693=cast(Literal[0, 1, 2], int(data.get("Controlarea15693", 0))),
                 control_value_15693=data.get("Controlvalue15693", "00"),
             )
 
@@ -201,7 +203,7 @@ class LabelElement:
             )
             # Add specific line/shape properties if they exist in dict
             if "lineDashStyle" in data:
-                element.line_dash_style = int(data["lineDashStyle"])
+                element.line_dash_style = cast(Literal[0, 1, 2, 3, 4], int(data["lineDashStyle"]))
             if "lineclass" in data:  # 1=horiz, 2=vert, 3=diag
                 element.line_class = int(data["lineclass"])
             element.object_class = 1  # Explicitly set for shape
@@ -219,7 +221,7 @@ class LabelElement:
             )
             # Add specific rect/shape properties
             if "lineDashStyle" in data:
-                element.line_dash_style = int(data["lineDashStyle"])
+                element.line_dash_style = cast(Literal[0, 1, 2, 3, 4], int(data["lineDashStyle"]))
             if "fillRectangle" in data:
                 element.fill_rectangle = bool(data["fillRectangle"])
             # rectangleclass seems to be always 0 (right-angle) in doc?
@@ -295,22 +297,24 @@ class TextElement(LabelElement):
         y: float = 3.0,
         font_name: str = "黑体",
         font_size: float = 10.0,
-        font_style: int = 0,  # 0:常规, 1:粗体, 2:斜体, 3:粗斜体
-        text_align: int = 0,  # 文字的对齐方式，0为左对齐，1为居中，2为右对齐
-        text_valign: int = 0,  # 文字的对齐方式，0为顶边对齐，1为垂直居中，2为底边对齐
+        font_style: Literal[0, 1, 2, 3] = 0,  # 0:常规, 1:粗体, 2:斜体, 3:粗斜体
+        text_align: Literal[0, 1, 2] = 0,  # 文字的对齐方式，0为左对齐，1为居中，2为右对齐
+        text_valign: Literal[0, 1, 2] = 0,  # 文字的对齐方式，0为顶边对齐，1为垂直居中，2为底边对齐
         is_multiline: bool = False,
         width: Optional[float] = None,  # 多行文本宽度 段落文本的宽度，单位mm
-        width_handling: int = 0,  # 段落文本超出指定宽度后处理，0为自动换行，1为自动压扁字体，2为自动缩小字体
+        width_handling: Literal[
+            0, 1, 2
+        ] = 0,  # 段落文本超出指定宽度后处理，0为自动换行，1为自动压扁字体，2为自动缩小字体
         black_background: bool = False,  # 是否黑底白字
         char_gap: float = 0,  # 字符间距，单位mm
         char_h_zoom: float = 1,  # 字符横向缩放倍数，0.3~2
-        line_gap_index: int = 0,  # 段落文本的行间距，0为单倍，1为一倍半，2为双倍，3为自定义
+        line_gap_index: Literal[0, 1, 2, 3] = 0,  # 段落文本的行间距，0为单倍，1为一倍半，2为双倍，3为自定义
         line_gap: float = 0,  # 自定义的行间距
         circular_radius: float = 2.0,  # 圆形环绕文字的圆形半径
         text_radian: int = 360,  # 圆形环绕文字的文本弧度
         text_start_angle: int = 0,  # 圆形环绕文字的起始角度
-        rewinding_direction: int = 0,  # 圆形环绕文字的回绕方向，0 顺时针，1 逆时针
-        literal_direction: int = 0,  # 圆形环绕文字的文字方向，0 向外，1 向内
+        rewinding_direction: Literal[0, 1] = 0,  # 圆形环绕文字的回绕方向，0 顺时针，1 逆时针
+        literal_direction: Literal[0, 1] = 0,  # 圆形环绕文字的文字方向，0 向外，1 向内
     ):
         super().__init__(object_name, x, y, data)
         self.element_type = "text"
@@ -351,21 +355,21 @@ class BarcodeElement(LabelElement):
         y: float = 3.0,
         scale: float = 3.0,  # 对于一维码是宽度比例，二维码是模块大小
         height: Optional[float] = None,  # 仅一维码需要
-        text_position: int = 0,  # 0:下方, 1:上方, 2:不显示 (一维码)
-        direction: int = 0,  # 0:0度, 1:90度, 2:180度, 3:270度
-        error_correction: int = 0,  # QR码的纠错等级，0:L,1:M,2:Q,3:H
-        char_encoding: int = 0,  # QR码的字符编码,0为UTF-8，1为GB2312
+        text_position: Literal[0, 1, 2] = 0,  # 0:下方, 1:上方, 2:不显示 (一维码)
+        direction: Literal[0, 1, 2, 3] = 0,  # 0:0度, 1:90度, 2:180度, 3:270度
+        error_correction: Literal[0, 1, 2, 3] = 0,  # QR码的纠错等级，0:L,1:M,2:Q,3:H
+        char_encoding: Literal[0, 1] = 0,  # QR码的字符编码,0为UTF-8，1为GB2312
         qr_version: int = 0,  # QR符号版本，1~40，数字越大包含字符越多,0为自动
         code39_width_ratio: int = 3,  # Code39码的条宽比
         code39_start_char: bool = True,  # Code39码是否包含起始符*
-        barcode_align: int = 0,  # 条码的对齐方式，0为左对齐，1为居中对齐，2为右对齐
+        barcode_align: Literal[0, 1, 2] = 0,  # 条码的对齐方式，0为左对齐，1为居中对齐，2为右对齐
         pdf417_rows: int = 0,  # PDF417条码的行数，即层数，0为自动
         pdf417_columns: int = 0,  # PDF417条码的列数，即数据的块数，左右两个标识块不算在内，0为自动
         pdf417_rows_auto: int = 3,  # PDF417条码的行数设置为自动时，得到的行数，最小为3
         pdf417_columns_auto: int = 1,  # PDF417条码的列数设置为自动时，得到的列数，最小为1
         datamatrix_shape: int = 0,  # DataMatrix的形状，0为自动，1为正方形，2为矩形
         text_offset: float = 0,  # 文字和条码的距离，单位mm
-        text_align: int = 2,  # 文字相对于条码的对齐方式，0为左侧、1为右侧、2为居中、3为撑满
+        text_align: Literal[0, 1, 2, 3] = 2,  # 文字相对于条码的对齐方式，0为左侧、1为右侧、2为居中、3为撑满
         text_font: str = "黑体",  # 字体名称
     ):
         super().__init__(object_name, x, y, data)
@@ -447,16 +451,16 @@ class RFIDElement(LabelElement):
         rfid_encoder_type: RFIDEncoderType = RFIDEncoderType.UHF,
         rfid_data_block: Optional[RFIDDataBlock] = None,  # UHF specific
         rfid_data_type: RFIDDataType = RFIDDataType.HEX,
-        rfid_text_encoding: int = 0,  # 文本编码：0为ASCII，1为UTF-8
+        rfid_text_encoding: Literal[0, 1] = 0,  # 文本编码：0为ASCII，1为UTF-8
         rfid_error_times: int = 2,  # 重试次数
         data_length_double_words: bool = False,  # 强制以4个字节为单位写入
-        data_alignment: int = 0,  # 数据对齐方式，0为后端补零，1为前端补零
+        data_alignment: Literal[0, 1] = 0,  # 数据对齐方式，0为后端补零，1为前端补零
         # 访问控制
-        rfid_epc_control: int = 0,  # EPC区访问控制
-        rfid_user_control: int = 0,  # USER区访问控制
-        rfid_tid_control: int = 0,  # TID区访问控制
-        rfid_access_pwd_control: int = 0,  # 访问密码区访问控制
-        rfid_kill_pwd_control: int = 0,  # 灭活密码区访问控制
+        rfid_epc_control: Literal[0, 1, 2, 3, 4, 5, 6] = 0,  # EPC区访问控制
+        rfid_user_control: Literal[0, 1, 2, 3, 4, 5, 6] = 0,  # USER区访问控制
+        rfid_tid_control: Literal[0, 1, 2, 3, 4, 5, 6] = 0,  # TID区访问控制
+        rfid_access_pwd_control: Literal[0, 1, 2, 3, 4, 5, 6] = 0,  # 访问密码区访问控制
+        rfid_kill_pwd_control: Literal[0, 1, 2, 3, 4, 5, 6] = 0,  # 灭活密码区访问控制
         # 以上访问控制的值：0为开放，1为锁定，2为解除锁定，3为永久锁定，4为永久解除锁定
         # 5为先解除锁定再重新锁定，6为先解除锁定再重新永久锁定
         rfid_access_new_pwd: str = "00000000",  # 访问密码新密码
@@ -468,14 +472,14 @@ class RFIDElement(LabelElement):
         hf_module_power: int = 0,  # 高频模块功率，0 为自动
         encrypt_14443a: bool = False,  # 是否要加密14443A标签
         sector_14443a: int = 1,  # 需要加密的1443A的扇区
-        keyab_14443a: int = 0,  # 需要加密KEYA或KEYB，0为KEYA，1为KEYB，2为两个都加密
+        keyab_14443a: Literal[0, 1, 2] = 0,  # 需要加密KEYA或KEYB，0为KEYA，1为KEYB，2为两个都加密
         keya_new_pwd: str = "",  # KEYA新密码
         keya_old_pwd: str = "FFFFFFFFFFFF",  # KEYA旧密码
         keyb_new_pwd: str = "",  # KEYB新密码
         keyb_old_pwd: str = "FFFFFFFFFFFF",  # KEYB旧密码
         encrypt_14443a_control: bool = False,  # 是否要设置14443A的控制字
         encrypt_14443a_control_value: str = "FF078069",  # 设置的14443A的控制字
-        control_area_15693: int = 0,  # 0为不设置，1为AFI，2为DSFID
+        control_area_15693: Literal[0, 1, 2] = 0,  # 0为不设置，1为AFI，2为DSFID
         control_value_15693: str = "00",  # 设置的值，默认是00
     ):
         super().__init__(object_name, data=data)  # 位置对于 RFID 无意义
@@ -524,13 +528,16 @@ class ShapeElement(LabelElement):
     def __init__(
         self,
         object_name: str,
-        shape_type: str,  # "line" or "rectangle"
+        shape_type: Literal["line", "rectangle"],  # "line" or "rectangle"
         start_x: float,
         start_y: float,
         end_x: float,
         end_y: float,
         line_width: float = 0.4,
-        # ... 其他 shape 属性
+        fill_rectangle: bool = False,
+        line_dash_style: Literal[
+            0, 1, 2, 3, 4
+        ] = 0,  # 条线样式，0为实线，1为破折虚线，2为破折点虚线，3为破折点点虚线，4为点虚线
     ):
         super().__init__(object_name, x=start_x, y=start_y)  # 使用起始点作为位置
         self.element_type = "shape"
@@ -546,8 +553,8 @@ class ShapeElement(LabelElement):
         self.start_y_position = start_y  # 直线和矩形在标签上起始点的位置，单位是mm
         self.end_x_position = end_x  # 直线和矩形在标签上终止点的位置，单位是mm
         self.end_y_position = end_y  # 直线和矩形在标签上终止点的位置，单位是mm
-        self.line_dash_style = 0  # 条线样式，0为实线，1为破折虚线，2为破折点虚线，3为破折点点虚线，4为点虚线
-        self.fill_rectangle = False  # 是否填充矩形
+        self.line_dash_style = line_dash_style  # 条线样式，0为实线，1为破折虚线，2为破折点虚线，3为破折点点虚线，4为点虚线  # 条线样式，0为实线，1为破折虚线，2为破折点虚线，3为破折点点虚线，4为点虚线
+        self.fill_rectangle = fill_rectangle  # 是否填充矩形
         self.line_class = 1 if shape_type == "line" else 0  # 直线的类别，1为横线，2为竖线，3为斜线
         self.rectangle_class = 0 if shape_type == "rectangle" else None  # 矩形的类别，0为直角矩形
         self.object_class = 1 if shape_type == "line" else 2  # 对象类型，1是线，2是矩形
