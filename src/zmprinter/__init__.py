@@ -8,6 +8,7 @@ from .elements import (
     ImageElement,
     RFIDElement,
     ShapeElement,
+    LabelElementType,
 )
 from .enums import (
     PrinterStyle,
@@ -53,6 +54,7 @@ __all__ = [
     "ImageElement",
     "RFIDElement",
     "ShapeElement",
+    "LabelElementType",
     "PrinterStyle",
     "BarcodeType",
     "RFIDEncoderType",

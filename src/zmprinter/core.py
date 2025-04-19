@@ -10,7 +10,15 @@ from PIL import Image
 from .utils import get_logger
 from .config import PrinterConfig, LabelConfig
 from .enums import PrinterStyle, BarcodeType, RFIDEncoderType, RFIDDataBlock, RFIDDataType
-from .elements import LabelElement, TextElement, BarcodeElement, ImageElement, RFIDElement, ShapeElement
+from .elements import (
+    LabelElement,
+    TextElement,
+    BarcodeElement,
+    ImageElement,
+    RFIDElement,
+    ShapeElement,
+    LabelElementType,
+)
 from .exceptions import (
     ZMPrinterSetupError,
     ZMPrinterImportError,
@@ -168,7 +176,7 @@ class LabelPrinterSDK:
         dotnet_label.labelshape = config.label_shape
         return dotnet_label
 
-    def _create_dotnet_object_list(self, elements: List[LabelElement]) -> object:
+    def _create_dotnet_object_list(self, elements: List[LabelElementType]) -> object:
         """将 Python LabelElement 列表转换为 .NET List<LabelObject>"""
         elem = None
         try:
@@ -239,6 +247,7 @@ class LabelPrinterSDK:
                     dotnet_obj.textoffset = elem.text_offset
                     dotnet_obj.textalign = elem.text_align
                     dotnet_obj.textfont = elem.text_font
+                    dotnet_obj.fontsize = elem.text_font_size
 
                 elif isinstance(elem, ImageElement):
                     dotnet_obj.Xposition = elem.x
@@ -329,7 +338,7 @@ class LabelPrinterSDK:
 
     def preview_label(
         self,
-        elements: List[LabelElement],
+        elements: List[LabelElementType],
         printer_config: Optional[PrinterConfig] = None,
         label_config: Optional[LabelConfig] = None,
     ) -> Optional["Image.Image"]:
@@ -365,7 +374,7 @@ class LabelPrinterSDK:
 
     def print_label(
         self,
-        elements: List[LabelElement],
+        elements: List[LabelElementType],
         copies: int = 1,
         stop_at_error: bool = True,
         printer_config: Optional[PrinterConfig] = None,
@@ -426,7 +435,7 @@ class LabelPrinterSDK:
 
     def read_lsf(
         self, lsf_file_path: str | Path
-    ) -> Tuple[Optional[PrinterConfig], Optional[LabelConfig], Optional[List[LabelElement]], str]:
+    ) -> Tuple[Optional[PrinterConfig], Optional[LabelConfig], Optional[List[LabelElementType]], str]:
         """
         读取 LSF 标签文件。
         :param lsf_file_path: LSF 文件的完整路径。
@@ -568,6 +577,7 @@ class LabelPrinterSDK:
                             else None,
                             text_position=dotnet_obj.textposition,
                             direction=dotnet_obj.direction,
+                            text_font_size=dotnet_obj.fontsize,
                         )
 
                         # 设置其他属性
@@ -599,6 +609,8 @@ class LabelPrinterSDK:
                             py_element.text_align = dotnet_obj.textalign
                         if hasattr(dotnet_obj, "textfont"):
                             py_element.text_font = dotnet_obj.textfont
+                        if hasattr(dotnet_obj, "fontsize"):
+                            py_element.text_font_size = dotnet_obj.fontsize
 
                     elif object_name.startswith("image"):
                         # LSF 不太可能直接包含 imagedata，但如果 DLL 解析后填充了，可以处理
@@ -740,7 +752,7 @@ class LabelPrinterSDK:
         except Exception as e:
             return None, None, None, f"Error: 读取 LSF 文件时发生 Python 异常: {e}"
 
-    def update_element_data(self, elements: List[LabelElement], object_name: str, new_data: str):
+    def update_element_data(self, elements: List[LabelElementType], object_name: str, new_data: str):
         """
         更新标签元素列表(Python 对象列表)中指定名称的元素的数据。
         这主要用于在打印前修改从 LSF 文件读取或手动创建的元素。

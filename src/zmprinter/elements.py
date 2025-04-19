@@ -127,6 +127,7 @@ class LabelElement:
                     Literal[0, 1, 2, 3], int(data.get("textalign", 2))
                 ),  # Different from TextElement's text_align
                 text_font=data.get("textfont", "黑体"),
+                text_font_size=float(data.get("fontsize", 10.0)),
                 # Note: fontsize from the dict might be for the barcode text,
                 # but BarcodeElement doesn't explicitly store it currently.
                 # The DLL likely uses textfont for rendering the text below/above.
@@ -371,6 +372,7 @@ class BarcodeElement(LabelElement):
         text_offset: float = 0,  # 文字和条码的距离，单位mm
         text_align: Literal[0, 1, 2, 3] = 2,  # 文字相对于条码的对齐方式，0为左侧、1为右侧、2为居中、3为撑满
         text_font: str = "黑体",  # 字体名称
+        text_font_size: float = 10.0,
     ):
         super().__init__(object_name, x, y, data)
         self.element_type = "barcode"
@@ -394,6 +396,7 @@ class BarcodeElement(LabelElement):
         self.text_offset = text_offset
         self.text_align = text_align
         self.text_font = text_font
+        self.text_font_size = text_font_size
 
 
 class ImageElement(LabelElement):
@@ -558,3 +561,6 @@ class ShapeElement(LabelElement):
         self.line_class = 1 if shape_type == "line" else 0  # 直线的类别，1为横线，2为竖线，3为斜线
         self.rectangle_class = 0 if shape_type == "rectangle" else None  # 矩形的类别，0为直角矩形
         self.object_class = 1 if shape_type == "line" else 2  # 对象类型，1是线，2是矩形
+
+
+LabelElementType = Union[TextElement, BarcodeElement, ImageElement, RFIDElement, ShapeElement]
