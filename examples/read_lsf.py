@@ -2,13 +2,12 @@
 """
 Read an existing LSF label file and preview it.
 """
+
 import os
 import argparse
 import pprint
 
 from zmprinter import LabelPrinterSDK
-from zmprinter.config import PrinterConfig, LabelConfig  # For type hints
-from zmprinter.elements import LabelElement
 
 
 def main():
@@ -49,6 +48,7 @@ def main():
                 print("Failed to generate preview for LSF file.")
         except Exception as e:
             print(f"Error generating preview: {e}")
+
 
 if __name__ == "__main__":
     main()

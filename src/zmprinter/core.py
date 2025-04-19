@@ -11,7 +11,6 @@ from .utils import get_logger
 from .config import PrinterConfig, LabelConfig
 from .enums import PrinterStyle, BarcodeType, RFIDEncoderType, RFIDDataBlock, RFIDDataType
 from .elements import (
-    LabelElement,
     TextElement,
     BarcodeElement,
     ImageElement,
