@@ -8,6 +8,7 @@ from zmprinter import (
     LabelElement,
     BarcodeElement,
     PrinterStyle,
+    LabelElementType,
 )
 
 json_string = """
@@ -102,7 +103,7 @@ json_string = """
             "barcodealign": 0,
             "textposition": 0,
             "textfont": "微软雅黑",
-            "fontsize": 6,
+            "fontsize": 3,
             "texttextalign": 0,
             "texttextvalign": 0,
             "rectangleclass": 0,
@@ -233,7 +234,7 @@ def print_from_json(json_payload: str):
         print(f"Label Config: {label_cfg.__dict__}")
 
         # --- 3. Create Label Elements ---
-        elements: List[LabelElement] = []
+        elements: List[LabelElementType] = []
         object_list = data.get("LabelObjectList", [])
         print(f"Processing {len(object_list)} label elements...")
 
